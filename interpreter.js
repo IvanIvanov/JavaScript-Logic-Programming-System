@@ -71,6 +71,22 @@ interpreter.REPL = function() {
   var pattern;
   var line;
 
+  java.lang.System.out.println(
+      "This is the logic programming system's command line interpreter!");
+  java.lang.System.out.println();
+  java.lang.System.out.println(
+      'You can enter 3 types of commands:');
+  java.lang.System.out.println(
+      '  1) facts: fact(natural(zero))');
+  java.lang.System.out.println(
+      '  2) rules: rule(natural(succ(X)), natural(X))');
+  java.lang.System.out.println(
+      '  3) queries: query(natural(X))');
+  java.lang.System.out.println();
+  java.lang.System.out.println(
+      "To quit the interpreter enter the 'quit' command");
+  java.lang.System.out.println();
+
   db = new lP.Database();
   scanner = new java.util.Scanner(java.lang.System['in']);
 
@@ -82,9 +98,11 @@ interpreter.REPL = function() {
     pattern = (new lP.Parser()).parseTerms(line)[0];
     if (interpreter.isFact(pattern)) {
       db.addAssertion(new lP.Assertion(pattern[1]));
+      java.lang.System.out.println('Fact added to database.');
     }
     else if (interpreter.isRule(pattern)) {
       db.addRule(new lP.Rule(pattern[1], pattern[2]));
+      java.lang.System.out.println('Rule added to database.');
     }
     else if (interpreter.isQuery(pattern)) {
       // At most 10 results are computed.
