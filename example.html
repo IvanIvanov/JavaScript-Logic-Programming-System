@@ -1,0 +1,122 @@
+<html>
+  <head>
+    <script type="text/javascript" src="logic_programming.js"></script>
+    <script type="text/javascript" src="streams.js"></script>
+    <script type="text/javascript">
+      function solve() {
+        var program = document.getElementById('input').value;
+        var result = lP.solve(program, 1);
+        document.getElementById('output').value = result;
+      }
+    </script>
+  </head>
+  <body>
+    <h1>JavaScript logic programming</h1>
+    <table>
+      <tr>
+        <td valign="top">
+          <form>
+            <textarea id="input" rows="25" cols="80" warp="off">fact(natural(zero))
+
+rule(natural(succ(X)), natural(X))
+
+rule(plus(zero, X, X), natural(X))
+
+rule(plus(succ(X), Y, succ(Z)), plus(X, Y, Z))
+
+rule(times(zero, X, zero), natural(X))
+
+rule(
+  times(succ(X), Y, Z),
+  and(times(X, Y, XY), plus(Y, XY, Z)))
+
+fact(factorial(zero, succ(zero)))
+
+rule(
+  factorial(succ(N), X),
+  and(
+    factorial(N, Y),
+    times(succ(N), Y, X)))
+
+query(factorial(X, succ(succ(succ(succ(succ(succ(zero))))))))</textarea>
+            <input type="button" value="Evaluate Program" style="display: block;" onclick="solve();"/>
+          </form>
+          <textarea id="output" rows="10" cols="80" wrap="off"></textarea>
+        </td>
+        <td valign="top">
+          <p>
+          Programs written for the logic programming system are 
+          composed of a sequence of elements called terms. There 
+          are 3 different kinds of terms:
+          </p>
+          <ol>
+            <li>
+            <strong>Atoms</strong>: these are general purpose names with no
+            inherent meaning. Atoms are strings that start with lowercase 
+            letters and can contain lowercase letters, uppercase letters and 
+            underscores. Example atoms include: natural, fooBar, foo_bar.
+            </li>
+            <li>
+            <strong>Variables</strong>: resemble variables in logic in that 
+            they are placeholders for arbitrary terms. They are denoted by 
+            strings that start with an uppercase letter and can contain 
+            lowercase letters, uppercase letters and underscores. 
+            Example Variables include: X, Y, Foo, Foo_bar.
+            </li>
+            <li>
+            <strong>Compound Terms</strong>: are composed from an atom called a 
+            functor and a number of arguments, which are again terms. Compound 
+            terms are written as a functor followed by a comma-separated list 
+            of argument terms, which is contained in parentheses.
+            </li>
+          </ol>
+          <p>
+          Top level compound terms can be of 1 of 3 types determined by the 
+          value of their functor:
+          </p>
+          <ol>
+            <li>
+            <strong>fact</strong> - a compound term of arity 1, where the first
+            argument is a term to be added to the system's database. Example 
+            facts include: fact(likes(fred, wilma)), fact(plus(two, two, four)).
+            </li>
+            <li>
+            <strong>rule</strong> - a compound term of arity 2, where the first
+            argument is the head of the rule and the second argument is the 
+            body of the rule. Example rules include: 
+            rule(natural(succ(X)), natural(X)), 
+            rule(likes(X, Y), and(likes(X, Z), likes(Z, Y)).
+            </li>
+            <li>
+            <strong>query</strong> - a compound term of arity 1, where the first
+            argument is a goal term that the system must try to resolve, by 
+            finding appropriate values for the variables. Example queries 
+            include: query(likes(fred, X)), query(natural(succ(succ(zero)))).
+            </li>
+          </ol>
+          <p>
+          The system supports 3 special forms for logic operations which are
+          represented by compound terms with functors:
+          </p>
+          <ol>
+            <li>
+            <strong>and</strong> - a compound term of arity n, which dictates 
+            that all the arguments have to simultaniously resolve for the 
+            whole term to resolve successfully.
+            </li>
+            <li>
+            <strong>or</strong> - a compound term of arity n, which dictates
+            that at least one of the arguments must successfully resolve for 
+            the whole term to resolve successfully.
+            </li>
+            <li>
+            <strong>not</strong> - a compound term of arity 1, which dictates
+            that at the term resolves successfully if the argument can not resolve.
+            </li>
+          </ol>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+
