@@ -24,15 +24,16 @@
   * This module implements a simple command line interface to the logic
   * programming system.
   *
+  *
   * Example usage:
   *   jrunscript interpreter.js
   *
-  *   >> ['fact', ['natural', 'zero']]
-  *   >> ['rule', ['natural', ['s', '?x']], ['natural', '?x']]
-  *   >> ['query', ['natural', '?x']]
-  *   ['natural', 'zero']
-  *   ['natural', ['s', 'zero']]
-  *   ['natural', ['s', ['s', 'zero']]]
+  *   >> fact(natural, zero)
+  *   >> rule(natural, s(X), natural(X))
+  *   >> query(natural(X))
+  *   X = zero
+  *   X = s(zero)
+  *   X = s(s(zero))
   *   ...
   *   ...
   *   >> quit
@@ -78,7 +79,7 @@ interpreter.REPL = function() {
     line = (new String(scanner.nextLine())).toString();
     if (line === 'quit') break;
 
-    pattern = eval(line);
+    pattern = (new lP.Parser()).parseTerms(line)[0];
     if (interpreter.isFact(pattern)) {
       db.addAssertion(new lP.Assertion(pattern[1]));
     }
@@ -86,15 +87,20 @@ interpreter.REPL = function() {
       db.addRule(new lP.Rule(pattern[1], pattern[2]));
     }
     else if (interpreter.isQuery(pattern)) {
-      // At most 100 results are computed.
+      // At most 10 results are computed.
       lP.qeval(
           db,
           pattern[1],
-          streams.singletonStream(lP.EMPTY_FRAME)).take(100).forEach(
+          streams.singletonStream(lP.EMPTY_FRAME)).take(10).forEach(
               function(frame) {
-                var result = lP.instantiate(pattern[1], frame);
-                java.lang.System.out.println(
-                    lP.serializeTree(result));
+                var j;
+                var vars = lP.extractVariables(pattern[1]);
+                java.lang.System.out.println('Result:');
+                for (j = 0; j < vars.length; j++) {
+                  java.lang.System.out.print(vars[j].substring(1) + ' = ');
+                  java.lang.System.out.println(lP.serializeTerm(
+                      lP.instantiate(vars[j], frame)));
+                }
               });
     }
     else {
@@ -106,5 +112,4 @@ interpreter.REPL = function() {
 load('logic_programming.js');
 load('streams.js');
 interpreter.REPL();
-
 

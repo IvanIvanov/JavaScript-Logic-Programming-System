@@ -30,6 +30,14 @@
 
 var lP = {};
 
+//#############################################################################
+// Definitions of primary datastructures:
+//   * Frame     - a linked-list like data structure of name-value pairs.
+//   * Assertion - models an assertion/fact in the database.
+//   * Rule      - models a rule in the database.
+//   * Database  - a collections of assertions and rules.
+//#############################################################################
+
 lP.Frame = function(name, value, frame) {
   this.name = name;
   this.value = value;
@@ -154,52 +162,6 @@ lP.Database.prototype = {
   }
 };
 
-lP.isArray = function(value) {
-  if (Object.prototype.toString.call(value) === '[object Array]') return true;
-  return false;
-};
-
-lP.isString = function(value) {
-  if (typeof value === 'string') return true;
-  return false;
-};
-
-lP.isVariable = function(value) {
-  if (lP.isString(value) && value.indexOf('?') === 0) return true;
-  return false;
-};
-
-lP.isAnd = function(value) {
-  if (lP.isArray(value) && value.length > 0 && value[0] === 'and') return true;
-  return false;
-};
-
-lP.isOr = function(value) {
-  if (lP.isArray(value) && value.length > 0 && value[0] === 'or') return true;
-  return false;
-};
-
-lP.isNot = function(value) {
-  if (lP.isArray(value) && value.length > 0 && value[0] === 'not') return true;
-  return false;
-};
-
-lP.map = function(func, arr) {
-  var i;
-  var result = [];
-  for (i = 0; i < arr.length; i++) {
-    result.push(func(arr[i]));
-  }
-  return result;
-};
-
-lP.serializeTree = function(tree) {
-  if (lP.isArray(tree)) {
-    return '[' + lP.map(lP.serializeTree, tree).join(', ') + ']';
-  }
-  return '' + tree;
-};
-
 lP.renameVariables = function(tree, id) {
   if (lP.isVariable(tree)) return tree + '-' + id;
   if (lP.isArray(tree)) {
@@ -207,6 +169,10 @@ lP.renameVariables = function(tree, id) {
   }
   return tree;
 };
+
+//#############################################################################
+// Pattern matching and unification
+//#############################################################################
 
 lP.extendIfConsistent = function(variable, data, frame) {
   var value = frame.lookup(variable);
@@ -299,6 +265,10 @@ lP.instantiate = function(pattern, frame) {
   return pattern;
 };
 
+//#############################################################################
+// Evaluation of queries - logic inference
+//#############################################################################
+
 lP.qeval = function(db, pattern, frameStream) {
   if (lP.isAnd(pattern)) return lP.andQuery(db, pattern, frameStream);
   if (lP.isOr(pattern)) return lP.orQuery(db, pattern, frameStream);
@@ -340,5 +310,264 @@ lP.notQuery = function(db, pattern, frameStream) {
         if (result.isEmpty()) return streams.singletonStream(frame);
         return streams.EMPTY_STREAM;
       });
+};
+
+//#############################################################################
+// Serialization logic
+//#############################################################################
+
+lP.serializeTree = function(tree) {
+  if (lP.isArray(tree)) {
+    return '[' + lP.map(lP.serializeTree, tree).join(', ') + ']';
+  }
+  return '' + tree;
+};
+
+lP.serializeTerm = function(term) {
+  if (lP.isArray(term)) {
+    var i;
+    var result = '';
+    result += term[0] + '(';
+    for (i = 1; i < term.length; i++) {
+      result += lP.serializeTerm(term[i]);
+      if (i + 1 < term.length) result += ',';
+    }
+    result += ')';
+    return result;
+  }
+  return term;
+};
+
+//#############################################################################
+// Parsing logic
+//#############################################################################
+
+lP.Parser = function() {
+};
+
+lP.Parser.prototype = {
+  parseTerms: function(rawString) {
+    var result = [];
+    var pos = 0;
+    rawString = rawString.replace(/[^a-zA-Z_(,)]/g, '');
+    while (pos < rawString.length) {
+      var term = this.parseTerm(rawString, pos);
+      if (term[1] === -1) return -1;
+      result.push(term[0]);
+      pos = term[1];
+    }
+
+    return result;
+  },
+
+  parseTerm: function(rawString, pos) {
+    var term;
+
+    term = this.parseCompoundTerm(rawString, pos);
+    if (term[1] !== -1) return term;
+
+    term = this.parseAtom(rawString, pos);
+    if (term[1] !== -1) return term;
+
+    term = this.parseVariable(rawString, pos);
+    if (term[1] !== -1) return term;
+
+    return [[], -1];
+  },
+
+  parseCompoundTerm: function(rawString, pos) {
+    var terms = [];
+    var functor = this.parseAtom(rawString, pos);
+    if (functor[1] === -1) return [[], -1];
+
+    pos = functor[1];
+    if (rawString.charAt(pos++) !== '(') return [[], -1];
+
+    var result = [functor[0]];
+    while (true) {
+      var term = this.parseTerm(rawString, pos);
+      if (term[1] === -1) return [[], -1];
+      pos = term[1];
+      if (rawString.charAt(pos) === ')') {
+        pos++;
+        result.push(term[0]);
+        break;
+      }
+      if (rawString.charAt(pos) === ',') {
+        pos++;
+        result.push(term[0]);
+        continue;
+      }
+      return [[], -1];
+    }
+
+    return [result, pos];
+  },
+
+  parseAtom: function(rawString, pos) {
+    var name = '';
+    while (pos < rawString.length) {
+      var ch = rawString.charCodeAt(pos++);
+      if (ch >= 65 && ch <= 90) { // 'A' - 'Z'
+        if (0 === name.length) return [[], -1];
+        name += String.fromCharCode(ch);
+      }
+      else if (ch >= 97 && ch <= 122) { // 'a' - 'z'
+        name += String.fromCharCode(ch);
+      }
+      else if (ch === 95) { // '_'
+        if (0 === name.length) return [[], -1];
+        name += String.fromCharCode(ch);
+      }
+      else {
+        pos--;
+        break;
+      }
+    }
+
+    return (name.length > 0) ? [name, pos] : [[], -1];
+  },
+
+  parseVariable: function(rawString, pos) {
+    var name = '';
+    while (pos < rawString.length) {
+      var ch = rawString.charCodeAt(pos++);
+      if (ch >= 65 && ch <= 90) { // 'A' - 'Z'
+        name += String.fromCharCode(ch);
+      }
+      else if (ch >= 97 && ch <= 122) { // 'a' - 'z'
+        if (0 === name.length) return [[], -1];
+        name += String.fromCharCode(ch);
+      }
+      else if (ch === 95) { // '_'
+        if (0 === name.length) return [[], -1];
+        name += String.fromCharCode(ch);
+      }
+      else {
+        pos--;
+        break;
+      }
+    }
+
+    return (name.length > 0) ? ['?' + name, pos] : [[], -1];
+  }
+};
+
+//#############################################################################
+// Utility functions
+//#############################################################################
+
+lP.isArray = function(value) {
+  if (Object.prototype.toString.call(value) === '[object Array]') return true;
+  return false;
+};
+
+lP.isString = function(value) {
+  if (typeof value === 'string') return true;
+  return false;
+};
+
+lP.isVariable = function(value) {
+  if (lP.isString(value) && value.indexOf('?') === 0) return true;
+  return false;
+};
+
+lP.isAnd = function(value) {
+  if (lP.isArray(value) && value.length > 0 && value[0] === 'and') return true;
+  return false;
+};
+
+lP.isOr = function(value) {
+  if (lP.isArray(value) && value.length > 0 && value[0] === 'or') return true;
+  return false;
+};
+
+lP.isNot = function(value) {
+  if (lP.isArray(value) && value.length > 0 && value[0] === 'not') return true;
+  return false;
+};
+
+lP.map = function(func, arr) {
+  var i;
+  var result = [];
+  for (i = 0; i < arr.length; i++) {
+    result.push(func(arr[i]));
+  }
+  return result;
+};
+
+lP.uniqueValues = function(arr) {
+  var i;
+  var result = new Array();
+  arr.sort();
+  for (i = 0; i < arr.length; i++) {
+    if (i == 0 || arr[i] != arr[i - 1]) {
+      result.push(arr[i]);
+    }
+  }
+
+  return result;
+};
+
+lP.extractVariables = function(tree) {
+  var i;
+  var vars;
+  var result = new Array();
+
+  if (lP.isVariable(tree)) {
+    result.push(tree);
+  }
+  else if (lP.isArray(tree)) {
+    for (i = 0; i < tree.length; i++) {
+      vars = lP.extractVariables(tree[i]);
+      result = result.concat(vars);
+    }
+  }
+
+  return lP.uniqueValues(result);
+};
+
+//#############################################################################
+// Simplified interface
+//#############################################################################
+
+lP.solve = function(program, maxSolutions) {
+  var terms = (new lP.Parser()).parseTerms(program);
+  if (terms === -1) {
+    return 'Invalid Program Syntax';
+  }
+  else {
+    var i;
+    var db = new lP.Database();
+    var result = '';
+    for (i = 0; i < terms.length; i++) {
+      if (terms[i][0] === 'fact') {
+        db.addAssertion(new lP.Assertion(terms[i][1]));
+      }
+      else if (terms[i][0] === 'rule') {
+        db.addRule(new lP.Rule(terms[i][1], terms[i][2]));
+      }
+      else if (terms[i][0] === 'query') {
+        var resultStream = lP.qeval(
+            db,
+            terms[i][1],
+            streams.singletonStream(lP.EMPTY_FRAME));
+        if (result.length > 0) result += '\n############################\n\n';
+        if (resultStream.isEmpty()) result += 'No Solution\n';
+        else result += 'Has a solution\n';
+        resultStream.take(maxSolutions).forEach(
+            function(frame) {
+              var j;
+              var vars = lP.extractVariables(terms[i][1]);
+              result += 'Variables:\n';
+              for (j = 0; j < vars.length; j++) {
+                result += vars[j].substring(1) + ' = ' +
+                    lP.serializeTerm(lP.instantiate(vars[j], frame)) + '\n';
+              }
+            });
+      }
+    }
+    return result;
+  }
 };
 

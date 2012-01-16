@@ -2,10 +2,61 @@ This library is a JavaScript adaptation of the logic programming system
 from the book "Structure and Interpretation of Computer Programs",
 Section 4.4: http://mitpress.mit.edu/sicp/full-text/book/book.html
 
-Example usage of the library can be found in example.js and a simple
-command line interpreter in interpreter.js. Example.js and interpreter.js
-require the Rhino JavaScript engine and can be run with the commands:
+A simple command line interpreter is provided. It requires the Rhino
+JavaScript engine and can be run in the command line with:
 
-  jrunscript example.js
   jrunscript interpreter.js
+
+There is also an entirely browser based version:
+
+  example.html
+
+
+Programs written for the logic programming system are composed of a sequence
+of elements called terms. There are 3 different kinds of terms:
+
+  1) Atoms: these are general purpose names with no inherent meaning. Atoms
+     are strings that start with lowercase letters and can contain lowercase
+     letters, uppercase letters and underscores. Example atoms include:
+     natural, fooBar, foo_bar.
+
+  2) Variables: resemble variables in logic in that they are placeholders for
+     arbitrary terms. They are denoted by strings that start with an uppercase
+     letter and can contain lowercase letters, uppercase letters and
+     underscores. Example Variables include: X, Y, Foo, Foo_bar.
+
+  3) Compound Terms: are composed from an atom called a functor and a number of
+     arguments, which are again terms. Compound terms are written as a functor
+     followed by a comma-separated list of argument terms, which is contained
+     in parentheses.
+
+Top level compound terms can be of 1 of 3 types determined by the value of 
+their functor:
+
+  1) fact - a compound term of arity 1, where the first argument is a term 
+     to be added to the system's database. Example facts include:
+     fact(likes(fred, wilma)), fact(plus(two, two, four)).
+
+  2) rule - a compound term of arity 2, where the first argument is the head
+     of the rule and the second argument is the body of the rule. Example 
+     rules include: rule(natural(succ(X)), natural(X)),
+     rule(likes(X, Y), and(likes(X, Z), likes(Z, Y)).
+
+  3) query - a compound term of arity 1, where the first argument is a goal 
+     term that the system must try to resolve, by finding appropriate values
+     for the variables. Example queries include:
+     query(likes(fred, X)), query(natural(succ(succ(zero)))).
+
+The system supports 3 special forms for logic operations which are represented 
+by compound terms with functors:
+
+  1) and - a compound term of arity n, which dictates that all the arguments 
+     have to simultaneously resolve for the whole term to resolve successfully.
+
+  2) or - a compound term of arity n, which dictates that at least one of the 
+     arguments must successfully resolve for the whole term to resolve 
+     successfully.
+
+  3) not - a compound term of arity 1, which dictates that at the term resolves
+     successfully if the argument can not resolve.
 
