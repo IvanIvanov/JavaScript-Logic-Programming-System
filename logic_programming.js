@@ -172,6 +172,41 @@ lP.renameVariables = function(tree, id) {
 
 //#############################################################################
 // Pattern matching and unification
+// --------------------------------
+//
+// Both pattern matching and unification are applied to heterogeneous
+// JavaScript arrays, which contain a mix of strings and other heterogeneous
+// arrays. If a string begins with a '?' then it represents a variable,
+// otherwise it represents an atom. Example patterns include:
+// 
+//   1) ['foo', '?x']
+//   2) ['foo', ['bar', 'baz']]
+//   3) ['?y',  ['bar', 'baz']]
+// 
+// The idea of pattern matching and unification is to find appropriate
+// bindings for variables so as to equate two patterns. Pattern matching
+// is simpler since only one of its input patterns may contain variables.
+// Unification, on the other hand, allows both patterns to contain variables.
+// 
+// Pattern matching is implemented by the function 'lP.patternMatch' which
+// takes two patterns ('pattern' and 'data'), where only the first one may
+// contain variables, and a frame of (variable, pattern) bindings and returns
+// a new frame with the extra bindings needed to equate the two patterns or
+// 'false' if equating is impossible. For example if we pattern match the
+// first two examples with an empty frame we would get the new binding:
+// 
+//   '?x' = ['bar', 'baz']
+// 
+// Unification is implemented by the function 'lP.unifyMatch' which
+// takes two patterns ('pattern1' and 'pattern2'), where both may contain
+// variables, and a frame of (variable, pattern) bindings and returns a new
+// frame with the extra bindings needed to equate the two patterns or 'false'
+// if equating is impossible. For example if we pattern match the first and
+// the last examples with an empty frame we would get the new bindings:
+// 
+//   '?x': ['bar', 'baz']
+//   '?y': 'foo'
+
 //#############################################################################
 
 lP.extendIfConsistent = function(variable, data, frame) {
