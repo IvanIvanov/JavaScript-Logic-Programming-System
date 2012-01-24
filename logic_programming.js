@@ -201,8 +201,8 @@ lP.renameVariables = function(tree, id) {
 // takes two patterns ('pattern1' and 'pattern2'), where both may contain
 // variables, and a frame of (variable, pattern) bindings and returns a new
 // frame with the extra bindings needed to equate the two patterns or 'false'
-// if equating is impossible. For example if we pattern match the first and
-// the last examples with an empty frame we would get the new bindings:
+// if equating is impossible. For example if we unify the first and the last
+// example with an empty frame we would get the new bindings:
 // 
 //   '?x': ['bar', 'baz']
 //   '?y': 'foo'
