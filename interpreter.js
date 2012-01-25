@@ -28,7 +28,7 @@
   * Example usage:
   *   jrunscript interpreter.js
   *
-  *   >> fact(natural, zero)
+  *   >> fact(natural(zero))
   *   >> rule(natural(s(X)), natural(X))
   *   >> query(natural(X))
   *   X = zero
